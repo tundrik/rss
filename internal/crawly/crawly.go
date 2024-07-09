@@ -12,6 +12,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
+const startKeeperDelay = 200 * time.Millisecond
 
 type Crawly struct {
 	parser *gofeed.Parser
@@ -39,7 +40,11 @@ func (c *Crawly) Run() {
 // keeper переодически получает список rss источников
 // на каждый источник запускает горутину
 func (c *Crawly) keeper(itemsCh chan<- entity.Article) {
-	ticker := time.NewTicker(100 * time.Millisecond)
+	sem := Semaphore{
+		sem: make(chan struct{}, c.cfg.ConnLimit),
+	}
+
+	ticker := time.NewTicker(startKeeperDelay)
 
 	for {
 		<-ticker.C
@@ -51,7 +56,12 @@ func (c *Crawly) keeper(itemsCh chan<- entity.Article) {
 		}
 
 		for _, source := range feeds {
-			go c.requester(itemsCh, source)
+			sem.Acquire()
+
+			go func() {
+				c.requester(itemsCh, source)
+				sem.Release()
+			}()
 		}
 
 		ticker.Reset(c.cfg.KeeperDelay)

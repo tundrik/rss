@@ -40,7 +40,6 @@ func (r *Repo) Feed() ([]entity.Feed, error) {
 
 	rows, err := r.db.Query(context.Background(), sql)
 	if err != nil {
-		r.log.Err(err).Msg("db error")
 		return nil, err
 	}
 	defer rows.Close()
