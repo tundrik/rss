@@ -12,7 +12,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-const startKeeperDelay = 200 * time.Millisecond
+const startKeeperDelay = 5 * time.Second
 
 type Crawly struct {
 	parser *gofeed.Parser

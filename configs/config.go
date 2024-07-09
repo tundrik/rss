@@ -9,7 +9,7 @@ import (
 
 type Config struct {
 	PgString    string        `env:"DATABASE_URL" env-default:"postgres://postgres:postgres@postgres:5432/postgres"`
-	KeeperDelay time.Duration `env:"KEEPER_DELAY" env-default:"60s"`
+	KeeperDelay time.Duration `env:"KEEPER_DELAY" env-default:"10s"`
 	ConnLimit   int           `env:"CONN_LIMIT" env-default:"256"`
 	ReqTimeout  time.Duration `env:"REQ_TIMEOUT" env-default:"10s"`
 	CumLimit    int           `env:"CUM_LIMIT" env-default:"300"`

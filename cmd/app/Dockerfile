@@ -2,7 +2,9 @@ FROM golang:alpine AS builder
 
 WORKDIR /build
 
-ADD go.mod .
+COPY go.mod go.sum ./
+
+RUN go mod download && go mod verify
 
 COPY . .
 

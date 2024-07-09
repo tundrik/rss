@@ -10,21 +10,23 @@ services:
     ports:
       - "5433:5432"  
 
-  app:
-    depends_on: 
-      - postgres
-    build:
-      context: . 
-      dockerfile: ./app.Dockerfile
-    ports:
-      - "8000:8000" 
-
   crawly:
     depends_on: 
       - postgres
     build:
       context: . 
-      dockerfile: ./crawly.Dockerfile
+      dockerfile: ./cmd/crawly/Dockerfile
+
+  app:
+    depends_on: 
+      - postgres
+    build:
+      context: . 
+      dockerfile: ./cmd/app/Dockerfile
+    ports:
+      - "8000:8000" 
+
+
 
 
   
