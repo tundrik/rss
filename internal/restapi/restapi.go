@@ -2,23 +2,22 @@ package restapi
 
 import (
 	"net/http"
+	"time"
 
 	"rss/internal/repository"
 
 	"github.com/rs/zerolog"
 )
 
-
 var (
-	msgCreated             = []byte(`{"message": "201 Created"}`)
-	msgNoContent           = []byte(`{"message": "204 No Content"}`)
-	msgBadRequest          = []byte(`{"message": "400 Bad Request"}`)
-	msgUnauthorized        = []byte(`{"message": "401 Unauthorized"}`)
-	msgForbidden           = []byte(`{"message": "403 Forbidden"}`)
-	msgConflict            = []byte(`{"message": "409 Conflict"}`)
-	msgInternalError       = []byte(`{"message": "500 Internal Server Error"}`)
+	msgCreated       = []byte(`{"message": "201 Created"}`)
+	msgNoContent     = []byte(`{"message": "204 No Content"}`)
+	msgBadRequest    = []byte(`{"message": "400 Bad Request"}`)
+	msgUnauthorized  = []byte(`{"message": "401 Unauthorized"}`)
+	msgForbidden     = []byte(`{"message": "403 Forbidden"}`)
+	msgConflict      = []byte(`{"message": "409 Conflict"}`)
+	msgInternalError = []byte(`{"message": "500 Internal Server Error"}`)
 )
-
 
 type RestApi struct {
 	repo *repository.Repo
@@ -27,7 +26,7 @@ type RestApi struct {
 }
 
 func New(repo *repository.Repo, log zerolog.Logger) *RestApi {
-    e := &RestApi{
+	e := &RestApi{
 		repo: repo,
 		log:  log,
 	}
@@ -40,8 +39,10 @@ func New(repo *repository.Repo, log zerolog.Logger) *RestApi {
 	mux.HandleFunc("GET /article", e.authUser(e.article))
 
 	e.srv = &http.Server{
-		Addr:    ":8000",
-		Handler: e.middleware(mux),
+		Addr:         ":8000",
+		Handler:      e.middleware(mux),
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
 	}
 
 	return e
