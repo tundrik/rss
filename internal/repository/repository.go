@@ -105,7 +105,7 @@ func (r *Repo) Article(personPk string) ([]entity.Article, error){
 	}
 	defer rows.Close()
 
-    var entities []entity.Article
+	var entities []entity.Article
 	for rows.Next() {
 		var a entity.Article
 		rows.Scan(&a.Pk, &a.Title, &a.Content, &a.SourceUrl, &a.Updated, &a.FeedPk)
@@ -116,7 +116,7 @@ func (r *Repo) Article(personPk string) ([]entity.Article, error){
 		return nil, err
 	}
 
-    if err := r.viewed(personPk); err != nil {
+	if err := r.viewed(personPk); err != nil {
 		return nil, err
 	}
 	return entities, nil
@@ -141,7 +141,7 @@ func (r *Repo) AddArticle(batch []entity.Article)  {
 			if errors.As(err, &pgErr) {
 				r.log.Err(err).Msg("pg error")
 			}
-            r.log.Err(err).Str("url", item.SourceUrl).Msg("db error")
+			r.log.Err(err).Str("url", item.SourceUrl).Msg("db error")
 		} 
 	}
 }

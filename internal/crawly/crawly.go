@@ -61,7 +61,7 @@ func (c *Crawly) keeper(itemsCh chan<- entity.Article) {
 // requester делает get запрос, каждый item из ответа пишет в канал
 func (c *Crawly) requester(itemsCh chan<- entity.Article, source entity.Feed) {
 	ctx, cancel := context.WithTimeout(context.Background(), c.cfg.ReqTimeout)
-    defer cancel()
+	defer cancel()
 
 	feed, err := c.parser.ParseURLWithContext(source.FeedUrl, ctx)
 	if err != nil {
