@@ -16,7 +16,7 @@ import (
 
 
 func main() {
-	ctx, cancelCtx := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 	log := logger.CreateLogger()
 
 	cfg, err := config.GetConfig()
@@ -29,7 +29,7 @@ func main() {
 	}
 
 	rest := restapi.New(repo, log)
-	go rest.Run()
+	rest.Run()
 
 	log.Info().Msg("starting app")
   
@@ -37,6 +37,8 @@ func main() {
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM, syscall.SIGABRT)
 
 	sign := <-signals
-	log.Info().Str("signal", sign.String()).Msg("stoping app")
-	cancelCtx()
+	log.Info().Str("signal", sign.String()).Msg("shutdown stoping app")
+	rest.Shutdown()
+	log.Info().Msg("stop app")
+	cancel()
 }

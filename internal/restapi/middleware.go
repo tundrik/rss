@@ -1,20 +1,20 @@
 package restapi
 
-import "net/http"
+import (
+	"net/http"
+)
 
 
 func (e *RestApi) middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-
 		defer func() {
 			if rcv := recover(); rcv != nil {
 				e.log.Error().Any("panic", rcv).Msg("panic recover")
-				
 				serverError(w)
 			}
 		}()
-
+     
 		next.ServeHTTP(w, r)
 	})
 }

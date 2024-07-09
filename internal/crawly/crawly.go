@@ -114,7 +114,13 @@ func (c *Crawly) cumulative(itemsCh <-chan entity.Article) {
 				flush()
 			}
 
-		case article := <-itemsCh:
+		case article, ok := <-itemsCh:
+			if !ok { 
+				// flush если канал закрыли
+				flush()
+				return
+			}
+
 			batch = append(batch, article)
 
 			if len(batch) == c.cfg.CumLimit {

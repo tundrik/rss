@@ -1,6 +1,8 @@
 package restapi
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"time"
 
@@ -48,8 +50,23 @@ func New(repo *repository.Repo, log zerolog.Logger) *RestApi {
 }
 
 func (e *RestApi) Run() {
-	if err := e.srv.ListenAndServe(); err != nil {
-		e.log.Fatal().Err(err).Msg("fail listen and serve")
+	go func() {
+		if err := e.srv.ListenAndServe(); err != nil {
+			// исключаем shutdown
+			if !errors.Is(err, http.ErrServerClosed) {
+				e.log.Fatal().Err(err).Msg("fail listen and serve")
+			}
+		}
+	}()
+}
+
+func (e *RestApi) Shutdown() {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	if err := e.srv.Shutdown(ctx); err != nil {
+		e.srv.Close()
+		e.log.Fatal().Err(err).Msg("fail shutdown")
 	}
 }
 
