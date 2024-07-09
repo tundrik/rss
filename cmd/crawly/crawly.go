@@ -12,25 +12,24 @@ import (
 	"rss/logger"
 )
 
-
 func main() {
 	ctx, cancelCtx := context.WithCancel(context.Background())
 	defer cancelCtx()
 
 	log := logger.CreateLogger()
 
-    cfg, err := config.GetConfig()
-    if err != nil {
+	cfg, err := config.GetConfig()
+	if err != nil {
 		log.Fatal().Err(err).Msg("fail read config")
 	}
 
-	repo, err := repository.New(ctx, cfg, log) 
+	repo, err := repository.New(ctx, cfg, log)
 	if err != nil {
 		log.Fatal().Err(err).Msg("fail new repository")
 	}
 
 	crawl := crawly.New(repo, cfg, log)
-    crawl.Run()
+	crawl.Run()
 	log.Info().Msg("starting crawly")
 
 	signals := make(chan os.Signal, 2)
