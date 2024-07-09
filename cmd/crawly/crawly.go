@@ -15,6 +15,8 @@ import (
 
 func main() {
 	ctx, cancelCtx := context.WithCancel(context.Background())
+	defer cancelCtx()
+
 	log := logger.CreateLogger()
 
     cfg, err := config.GetConfig()
@@ -27,9 +29,8 @@ func main() {
 		log.Fatal().Err(err).Msg("fail new repository")
 	}
 
-	crawl := crawly.New(repo, log)
+	crawl := crawly.New(repo, cfg, log)
     crawl.Run()
-
 	log.Info().Msg("starting crawly")
 
 	signals := make(chan os.Signal, 2)
@@ -37,5 +38,4 @@ func main() {
 
 	sign := <-signals
 	log.Info().Str("signal", sign.String()).Msg("stoping crawly")
-	cancelCtx()
 }

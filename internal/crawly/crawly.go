@@ -1,9 +1,10 @@
 package crawly
 
 import (
-	"time"
 	"context"
+	"time"
 
+	"rss/configs"
 	"rss/internal/entity"
 	"rss/internal/repository"
 
@@ -15,55 +16,58 @@ import (
 type Crawly struct {
 	parser *gofeed.Parser
 	repo   *repository.Repo
+	cfg    config.Config
 	log    zerolog.Logger
 }
 
-func New(repo *repository.Repo, log zerolog.Logger) *Crawly {
+func New(repo *repository.Repo, cfg config.Config, log zerolog.Logger) *Crawly {
 	return &Crawly{
 		parser: gofeed.NewParser(),
 		repo: repo,
+		cfg: cfg,
 		log: log,
 	}
 }
 
 func (c *Crawly) Run() {
-	ch := make(chan entity.Article, 1)
+	itemsCh := make(chan entity.Article, 1)
 
-	go c.keeper(ch, 10000 * time.Millisecond)
-	go c.cumulative(ch, 300, time.Duration(200))
+	go c.keeper(itemsCh)
+	go c.cumulative(itemsCh)
 }
 
-func (c *Crawly) keeper(ch chan<- entity.Article, delay time.Duration) {
-	ticker := time.NewTicker(10 * time.Millisecond)
+// keeper переодически получает список rss источников
+// на каждый источник запускает горутину
+func (c *Crawly) keeper(itemsCh chan<- entity.Article) {
+	ticker := time.NewTicker(100 * time.Millisecond)
 
 	for {
 		<-ticker.C
-		c.log.Info().Msg("ticker")
+		c.log.Debug().Msg("ticker get feeds db")
+
 		feeds, err := c.repo.Feed()
 		if err != nil {
-			c.log.Err(err).Msg("err")
-		}
-		for _, source := range feeds {
-			c.log.Info().Str("source", source.FeedUrl).Msg("go requester")
-			go c.requester(ch, source)
+			c.log.Err(err).Msg("repo feed")
 		}
 
-		ticker.Reset(delay)
+		for _, source := range feeds {
+			go c.requester(itemsCh, source)
+		}
+
+		ticker.Reset(c.cfg.KeeperDelay)
 	}
 }
 
-func (c *Crawly) requester(ch chan<- entity.Article, source entity.Feed) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5000 * time.Millisecond)
+// requester делает get запрос, каждый item из ответа пишет в канал
+func (c *Crawly) requester(itemsCh chan<- entity.Article, source entity.Feed) {
+	ctx, cancel := context.WithTimeout(context.Background(), c.cfg.ReqTimeout)
     defer cancel()
 
 	feed, err := c.parser.ParseURLWithContext(source.FeedUrl, ctx)
-
 	if err != nil {
-		c.log.Err(err).Msg("err")
+		c.log.Err(err).Str("url", source.FeedUrl).Msg("gofeed get")
 		return
 	}
-
-	c.log.Info().Str("type", feed.FeedType).Msg("get")
 
 	for _, item := range feed.Items {
 		article := entity.Article{
@@ -71,44 +75,52 @@ func (c *Crawly) requester(ch chan<- entity.Article, source entity.Feed) {
 			SourceUrl: item.Link,
 			FeedPk: source.Pk,
 		}
+		// нам нужна последняя дата
 		if item.UpdatedParsed != nil {
 			article.Updated = *item.UpdatedParsed
 		} else {
 			article.Updated = *item.PublishedParsed
 		}
+		// контента может не быть 
 		if item.Content != "" {
 			article.Content = item.Content
 		} else {
 			article.Content = item.Description
 		}
-		ch <- article
+
+		itemsCh <- article
 	}
 }
 
-func (c *Crawly) cumulative(ch <-chan entity.Article, size int, d time.Duration) {
-	batch := make([]entity.Article, 0, size)
+// cumulative накаплевает Article к себе,
+// при накоплении до лимита или по дедлайну сливает в базу данных.
+func (c *Crawly) cumulative(itemsCh <-chan entity.Article) {
+	batch := make([]entity.Article, 0, c.cfg.CumLimit)
 
 	flush := func() {
-		c.log.Info().Int("len batch", len(batch)).Msg("flush")
+		c.log.Debug().Int("len batch", len(batch)).Msg("flush")
 		c.repo.AddArticle(batch)
+		// batch на переиспользование
 		batch = batch[:0]
 	}
 
-	ticker := time.NewTicker(d * time.Millisecond)
+	ticker := time.NewTicker(c.cfg.CumDeadline)
 
 	for {
 		select {
 		case <-ticker.C:
 			if len(batch) > 0 {
+				// flush по дедлайну
 				flush()
 			}
 
-		case article := <-ch:
+		case article := <-itemsCh:
 			batch = append(batch, article)
 
-			if len(batch) == size {
+			if len(batch) == c.cfg.CumLimit {
+				// flush по лимиту размера
 				flush()
-				ticker.Reset(d * time.Millisecond)
+				ticker.Reset(c.cfg.CumDeadline)
 			}
 		}
 	}

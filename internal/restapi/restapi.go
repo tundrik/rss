@@ -44,13 +44,11 @@ func New(repo *repository.Repo, log zerolog.Logger) *RestApi {
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
-
 	return e
 }
 
 func (e *RestApi) Run() {
-	err := e.srv.ListenAndServe()
-	if err != nil {
+	if err := e.srv.ListenAndServe(); err != nil {
 		e.log.Fatal().Err(err).Msg("fail listen and serve")
 	}
 }
