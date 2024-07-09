@@ -19,8 +19,8 @@ func main() {
 	ctx, cancelCtx := context.WithCancel(context.Background())
 	log := logger.CreateLogger()
 
-    cfg, err := config.GetConfig()
-    if err != nil {
+	cfg, err := config.GetConfig()
+	if err != nil {
 		log.Fatal().Err(err).Msg("fail read config")
 	}
 	repo, err := repository.New(ctx, cfg, log) 
@@ -28,7 +28,7 @@ func main() {
 		log.Fatal().Err(err).Msg("fail new repository")
 	}
 
-    rest := restapi.New(repo, log)
+	rest := restapi.New(repo, log)
 	go rest.Run()
 
 	log.Info().Msg("starting app")
