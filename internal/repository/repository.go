@@ -96,7 +96,8 @@ func (r *Repo) Unsubscribe(personPk string, feedPk string) error {
 
 // Article возвращает список статей для пользователя.
 func (r *Repo) Article(personPk string) ([]entity.Article, error){
-	const sql = `SELECT pk, title, content, source_url, updated, article.feed_pk FROM article JOIN subscribe as sub ON sub.feed_pk = article.feed_pk AND sub.person_pk = $1 WHERE updated > (SELECT viewed FROM person WHERE person.pk = $1);`
+	const sql = `SELECT pk, title, content, source_url, published, article.feed_pk FROM article 
+	JOIN subscribe as sub ON sub.feed_pk = article.feed_pk AND sub.person_pk = $1 WHERE recorded > (SELECT viewed FROM person WHERE person.pk = $1);`
 
 	rows, err := r.db.Query(context.Background(), sql, personPk)
 	if err != nil {
@@ -107,7 +108,7 @@ func (r *Repo) Article(personPk string) ([]entity.Article, error){
 	var entities []entity.Article
 	for rows.Next() {
 		var a entity.Article
-		rows.Scan(&a.Pk, &a.Title, &a.Content, &a.SourceUrl, &a.Updated, &a.FeedPk)
+		rows.Scan(&a.Pk, &a.Title, &a.Content, &a.SourceUrl, &a.Published, &a.FeedPk)
 		entities = append(entities, a)
 	}
 
@@ -124,10 +125,12 @@ func (r *Repo) Article(personPk string) ([]entity.Article, error){
 // AddArticle добавляет пакет статей.
 func (r *Repo) AddArticle(batch []entity.Article)  {
 	pgBatch := &pgx.Batch{}
-	const sql = `INSERT INTO article (title, content, source_url, updated, feed_pk) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (source_url) DO UPDATE SET (title, content, updated) = (EXCLUDED.title, EXCLUDED.content, EXCLUDED.updated);`
+	const sql = `INSERT INTO article (title, content, source_url, published, feed_pk) VALUES ($1, $2, $3, $4, $5) 
+	ON CONFLICT (source_url) DO UPDATE SET (title, content, published) = (EXCLUDED.title, EXCLUDED.content, EXCLUDED.published) 
+	WHERE article.published < EXCLUDED.published;`
 
 	for _, a := range batch {
-		pgBatch.Queue(sql, a.Title, a.Content, a.SourceUrl, a.Updated, a.FeedPk)
+		pgBatch.Queue(sql, a.Title, a.Content, a.SourceUrl, a.Published, a.FeedPk)
 	}
 
 	results := r.db.SendBatch(context.Background(), pgBatch)

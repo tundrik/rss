@@ -40,15 +40,14 @@ func (c *Crawly) Run() {
 // keeper переодически получает список rss источников
 // на каждый источник запускает горутину
 func (c *Crawly) keeper(itemsCh chan<- entity.Article) {
-	sem := Semaphore{
-		sem: make(chan struct{}, c.cfg.ConnLimit),
-	}
+	sem := newSemaphore(c.cfg.ConnLimit)
 
 	ticker := time.NewTicker(startKeeperDelay)
-
+    defer ticker.Stop()
 	for {
 		<-ticker.C
 		c.log.Debug().Msg("ticker get feeds db")
+		ticker.Reset(c.cfg.KeeperDelay)
 
 		feeds, err := c.repo.Feed()
 		if err != nil {
@@ -63,8 +62,6 @@ func (c *Crawly) keeper(itemsCh chan<- entity.Article) {
 				sem.Release()
 			}()
 		}
-
-		ticker.Reset(c.cfg.KeeperDelay)
 	}
 }
 
@@ -87,9 +84,9 @@ func (c *Crawly) requester(itemsCh chan<- entity.Article, source entity.Feed) {
 		}
 		// нам нужна последняя дата
 		if item.UpdatedParsed != nil {
-			article.Updated = *item.UpdatedParsed
+			article.Published = *item.UpdatedParsed
 		} else {
-			article.Updated = *item.PublishedParsed
+			article.Published = *item.PublishedParsed
 		}
 		// контента может не быть 
 		if item.Content != "" {

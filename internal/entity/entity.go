@@ -14,6 +14,6 @@ type Article struct {
 	Title      string	 `json:"title"`
 	Content    string	 `json:"content"`
 	SourceUrl  string    `json:"source_url"`
-	Updated    time.Time `json:"updated"`
+	Published  time.Time `json:"published"`
 	FeedPk     int	     `json:"feed_pk"`
 }
