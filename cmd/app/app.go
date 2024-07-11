@@ -29,7 +29,7 @@ func main() {
 		log.Fatal().Err(err).Msg("fail new repository")
 	}
 
-    uc := usecase.New(repo)
+	uc := usecase.New(repo)
 	rest := restapi.New(uc, log)
 	rest.Run()
 

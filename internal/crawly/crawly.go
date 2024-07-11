@@ -44,7 +44,7 @@ func (c *Crawly) keeper(itemsCh chan<- entity.Article) {
 	sem := newSemaphore(c.cfg.ConnLimit)
 
 	ticker := time.NewTicker(startKeeperDelay)
-    defer ticker.Stop()
+	defer ticker.Stop()
 	for {
 		<-ticker.C
 		c.log.Debug().Msg("ticker get feeds db")
