@@ -3,7 +3,6 @@ package restapi
 import (
 	"errors"
 	"net/http"
-	"strconv"
 
 	"rss/internal/repository"
 )
@@ -24,8 +23,9 @@ func (e *RestApi) available(w http.ResponseWriter, req *http.Request) {
 func (e *RestApi) addFeed(w http.ResponseWriter, req *http.Request) {
 	feedUrl := req.PostFormValue("feed_url")
 	// TODO: на каком то этапе нужно проверить что этот url вернет rss
-	if feedUrl == "" {
-		e.responseJson(w, "required feed_url (string)", 400, nil)
+	// простая валидация url
+	if !IsUrl(feedUrl) {
+		e.responseJson(w, "required feed_url (url)", 400, nil)
 		return
 	}
 	ctx := req.Context()
@@ -46,8 +46,7 @@ func (e *RestApi) addFeed(w http.ResponseWriter, req *http.Request) {
 func (e *RestApi) subscribe(w http.ResponseWriter, req *http.Request) {
 	personPk := req.Header.Get("X-Auth-ID")
 	feedPk := req.PostFormValue("feed_pk")
-
-	if _, err := strconv.Atoi(feedPk); err != nil {
+    if !IsInt(feedPk) {
 		e.responseJson(w, "required feed_pk (int)", 400, nil)
 		return
 	}
@@ -74,8 +73,7 @@ func (e *RestApi) subscribe(w http.ResponseWriter, req *http.Request) {
 func (e *RestApi) unsubscribe(w http.ResponseWriter, req *http.Request) {
 	personPk := req.Header.Get("X-Auth-ID")
 	feedPk := req.PostFormValue("feed_pk")
-	
-	if _, err := strconv.Atoi(feedPk); err != nil {
+    if !IsInt(feedPk) {
 		e.responseJson(w, "required feed_pk (int)", 400, nil)
 		return
 	}
