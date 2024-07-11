@@ -87,6 +87,7 @@ func (r *Repo) AddFeed(ctx context.Context, feedUrl string) error {
 
 // Subscribe подписывает пользователя на RSS канал.
 func (r *Repo) Subscribe(ctx context.Context, personPk string, feedPk string) error {
+	// viewed будет по умолчанию transaction_timestamp() - INTERVAL '1 MONTH'
 	const sql = `INSERT INTO subscribe(person_pk, feed_pk) VALUES ($1, $2);`
 
 	_, err := r.db.Exec(ctx, sql, personPk, feedPk)
@@ -124,7 +125,7 @@ func (r *Repo) Unsubscribe(ctx context.Context, personPk string, feedPk string) 
 // Article возвращает список статей для пользователя.
 func (r *Repo) Article(ctx context.Context, personPk string) ([]entity.Article, error) {
 	const sql = `SELECT pk, title, content, source_url, published, article.feed_pk FROM article 
-	JOIN subscribe as sub ON sub.feed_pk = article.feed_pk AND sub.person_pk = $1 WHERE recorded > (SELECT viewed FROM person WHERE person.pk = $1);`
+	JOIN subscribe as sub ON sub.feed_pk = article.feed_pk AND sub.person_pk = $1 WHERE recorded > sub.viewed;`
 
 	rows, err := r.db.Query(ctx, sql, personPk)
 	if err != nil {
@@ -181,7 +182,7 @@ func (r *Repo) AddArticle(ctx context.Context, batch []entity.Article) {
 
 // Viewed обновляет дату последнего просмотра у пользователя.
 func (r *Repo) Viewed(ctx context.Context, personPk string) error {
-	const sql = `UPDATE person SET viewed = now() WHERE person.pk = $1;`
+	const sql = `UPDATE subscribe SET viewed = now() WHERE subscribe.person_pk = $1;`
 
 	_, err := r.db.Exec(ctx, sql, personPk)
 	if err != nil {

@@ -12,13 +12,13 @@ CREATE TABLE article (
     feed_pk INT REFERENCES feed NOT NULL
 );
 CREATE TABLE person (
-    pk UUID PRIMARY KEY,
-    viewed TIMESTAMP WITH TIME ZONE DEFAULT transaction_timestamp()
+    pk UUID PRIMARY KEY
 );
 CREATE TABLE subscribe (
     person_pk UUID REFERENCES person,
     feed_pk INT REFERENCES feed,
-    UNIQUE (person_pk, feed_pk)
+    UNIQUE (person_pk, feed_pk),
+    viewed TIMESTAMP WITH TIME ZONE DEFAULT transaction_timestamp() - INTERVAL '1 MONTH'
 );
 INSERT INTO person (pk)
 VALUES
