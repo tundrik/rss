@@ -3,7 +3,8 @@ package restapi
 import (
 	"errors"
 	"net/http"
-	
+	"strconv"
+
 	"rss/internal/repository"
 )
 
@@ -22,14 +23,16 @@ func (e *RestApi) available(w http.ResponseWriter, req *http.Request) {
 // addFeed добавляет новый RSS источник.
 func (e *RestApi) addFeed(w http.ResponseWriter, req *http.Request) {
 	feedUrl := req.PostFormValue("feed_url")
+	// TODO: на каком то этапе нужно проверить что этот url вернет rss
 	if feedUrl == "" {
-		e.responseJson(w, "required feed_url", 400, nil)
+		e.responseJson(w, "required feed_url (string)", 400, nil)
 		return
 	}
 	ctx := req.Context()
 
 	if err := e.uc.AddFeed(ctx, feedUrl); err != nil {
 		if errors.Is(err, repository.ErrFeedExists) {
+			// такой url уже существует
 			e.responseJson(w, msgAlreadyExists, 400, nil)
 			return
 		}
@@ -43,10 +46,12 @@ func (e *RestApi) addFeed(w http.ResponseWriter, req *http.Request) {
 func (e *RestApi) subscribe(w http.ResponseWriter, req *http.Request) {
 	personPk := req.Header.Get("X-Auth-ID")
 	feedPk := req.PostFormValue("feed_pk")
-	if feedPk == "" {
-		e.responseJson(w, "required feed_pk", 400, nil)
+
+	if _, err := strconv.Atoi(feedPk); err != nil {
+		e.responseJson(w, "required feed_pk (int)", 400, nil)
 		return
 	}
+
 	ctx := req.Context()
 
 	if err := e.uc.Subscribe(ctx, personPk, feedPk); err != nil {
@@ -69,10 +74,12 @@ func (e *RestApi) subscribe(w http.ResponseWriter, req *http.Request) {
 func (e *RestApi) unsubscribe(w http.ResponseWriter, req *http.Request) {
 	personPk := req.Header.Get("X-Auth-ID")
 	feedPk := req.PostFormValue("feed_pk")
-	if feedPk == "" {
-		e.responseJson(w, "required feed_pk", 400, nil)
+	
+	if _, err := strconv.Atoi(feedPk); err != nil {
+		e.responseJson(w, "required feed_pk (int)", 400, nil)
 		return
 	}
+
 	ctx := req.Context()
 
 	if err := e.uc.Unsubscribe(ctx, personPk, feedPk); err != nil {
