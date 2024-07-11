@@ -24,12 +24,15 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("fail read config")
 	}
+	// слой данных
 	repo, err := repository.New(ctx, cfg, log) 
 	if err != nil {
 		log.Fatal().Err(err).Msg("fail new repository")
 	}
-
+	// слой бизнес логики
 	uc := usecase.New(repo)
+
+	// слой транспорта http
 	rest := restapi.New(uc, log)
 	rest.Run()
 
@@ -41,6 +44,6 @@ func main() {
 	sign := <-signals
 	log.Info().Str("signal", sign.String()).Msg("shutdown stoping app")
 	rest.Shutdown()
-	log.Info().Msg("stop app")
 	cancel()
+	log.Info().Msg("stop app")
 }

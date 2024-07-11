@@ -1,27 +1,38 @@
 package crawly
-
+/*
+	Концепция
+	1) keeper переодически получает список rss источников из базы данных. 
+	2) множество горутин ограниченное семафором, по горутине на каждый url.
+	3) cumulative накаплевает Article к себе, при накоплении до лимита или по дедлайну сливает в базу данных.
+*/
 import (
 	"context"
 	"time"
 
 	"rss/configs"
 	"rss/internal/entity"
-	"rss/internal/repository"
 
 	"github.com/mmcdole/gofeed"
 	"github.com/rs/zerolog"
 )
 
+
 const startKeeperDelay = 5 * time.Second
+
+
+type Repository interface {
+    Available(ctx context.Context) ([]entity.Feed, error)
+    AddArticle(ctx context.Context, batch []entity.Article)
+}
 
 type Crawly struct {
 	parser *gofeed.Parser
-	repo   *repository.Repo
+	repo   Repository
 	cfg    config.Config
 	log    zerolog.Logger
 }
 
-func New(repo *repository.Repo, cfg config.Config, log zerolog.Logger) *Crawly {
+func New(repo Repository, cfg config.Config, log zerolog.Logger) *Crawly {
 	return &Crawly{
 		parser: gofeed.NewParser(),
 		repo: repo,

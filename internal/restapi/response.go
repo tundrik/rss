@@ -20,6 +20,7 @@ type Response struct {
 	Body    any    `json:"body,omitempty"`
 }
 
+// я тут эксперементировал с общим Response на все ручки
 func (e *RestApi) responseJson(w http.ResponseWriter, msg string, code int, body any) {
 	w.Header().Set("Content-Type", "application/json")
 	if code != 200 {
