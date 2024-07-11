@@ -77,6 +77,7 @@ func (r *Repo) AddFeed(ctx context.Context, feedUrl string) error {
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == UniqueConstrintViolation {
+			// такой url уже существует
 			return ErrFeedExists
 		}
 		return err
@@ -94,8 +95,12 @@ func (r *Repo) Subscribe(ctx context.Context, personPk string, feedPk string) er
 		if errors.As(err, &pgErr) {
 			switch pgErr.Code {
 			case UniqueConstrintViolation:
+				// подписка на данный канал у данного юзера уже существует
 				return ErrReSubscription
 			case ViolatesForeignKeyConstraint:
+				// тут может быть 
+				// 1) нет канала с таким pk
+				// 2) нет такого юзера (на практике это было бы исключенно)
 				return ErrNoSubscription
 			}
 		}
@@ -137,6 +142,7 @@ func (r *Repo) Article(ctx context.Context, personPk string) ([]entity.Article, 
 		return nil, rows.Err()
 	}
 	if len(entities) == 0 {
+		// по сути чтобы не запускать Viewed()
 		return nil, ErrArticleNotFound
 	}
 	return entities, nil
@@ -159,11 +165,16 @@ func (r *Repo) AddArticle(ctx context.Context, batch []entity.Article) {
 	for _, item := range batch {
 		_, err := results.Exec()
 		if err != nil {
+			// SendBatch при первой ошибке не выполнит последующие insert
+			// хотя CONFLICT по уникальности url обновит article 
+			// если article.published < EXCLUDED.published и пойдет дальше
 			var pgErr *pgconn.PgError
 			if errors.As(err, &pgErr) {
 				r.log.Err(err).Msg("pg error")
 			}
 			r.log.Err(err).Str("url", item.SourceUrl).Msg("db error")
+			// мы тут не возвращаем возможные ошибки, только логгируем
+			// всеравно не понятно как действовать, просто игнорируем
 		}
 	}
 }
