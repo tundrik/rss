@@ -5,40 +5,36 @@ import (
 )
 
 
-func (e *RestApi) middleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
+func (e *RestApi) globalMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		defer func() {
 			if rcv := recover(); rcv != nil {
 				e.log.Error().Any("panic", rcv).Msg("panic recover")
-				serverError(w)
+				e.responseJson(w, "internal server error", 500, nil)
 			}
 		}()
-     
-		next.ServeHTTP(w, r)
+
+		next.ServeHTTP(w, req)
 	})
 }
 
-func (e *RestApi) authAdmin(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		
-		if r.Header.Get("X-Auth-ID") != "35be0a7c-8570-4987-be59-efeac5906d74" {
-			forbidden(w)
+func (e *RestApi) authAdminMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		token := req.Header.Get("X-Auth-ID")
+		if token != "35be0a7c-8570-4987-be59-efeac5906d74" {
+			e.responseJson(w, "Forbidden", 403, nil)
 			return
 		}
-
-		next(w, r)
+		next(w, req)
 	}
 }
 
-func (e *RestApi) authUser(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		
-		if r.Header.Get("X-Auth-ID") == "" {
-			unauthorized(w)
+func (e *RestApi) authUserMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		if req.Header.Get("X-Auth-ID") == "" {
+			e.responseJson(w, "Unauthorized", 401, nil)
 			return
 		}
-
-		next(w, r)
+		next(w, req)
 	}
 }

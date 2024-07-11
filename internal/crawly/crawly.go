@@ -40,6 +40,7 @@ func (c *Crawly) Run() {
 // keeper переодически получает список rss источников
 // на каждый источник запускает горутину
 func (c *Crawly) keeper(itemsCh chan<- entity.Article) {
+	ctx := context.TODO()
 	sem := newSemaphore(c.cfg.ConnLimit)
 
 	ticker := time.NewTicker(startKeeperDelay)
@@ -49,7 +50,7 @@ func (c *Crawly) keeper(itemsCh chan<- entity.Article) {
 		c.log.Debug().Msg("ticker get feeds db")
 		ticker.Reset(c.cfg.KeeperDelay)
 
-		feeds, err := c.repo.Feed()
+		feeds, err := c.repo.Available(ctx)
 		if err != nil {
 			c.log.Err(err).Msg("repo feed")
 		}
@@ -106,7 +107,7 @@ func (c *Crawly) cumulative(itemsCh <-chan entity.Article) {
 
 	flush := func() {
 		c.log.Debug().Int("len batch", len(batch)).Msg("flush")
-		c.repo.AddArticle(batch)
+		c.repo.AddArticle(context.TODO(), batch)
 		// batch на переиспользование
 		batch = batch[:0]
 	}

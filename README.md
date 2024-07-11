@@ -1,4 +1,4 @@
-## Инструкция
+## Быстрый старт
 
     $ git clone https://github.com/tundrik/rss
     $ cd rss

@@ -9,6 +9,7 @@ import (
 	"rss/configs"
 	"rss/internal/repository"
 	"rss/internal/restapi"
+	"rss/internal/usecase"
 	"rss/logger"
 )
 
@@ -28,7 +29,8 @@ func main() {
 		log.Fatal().Err(err).Msg("fail new repository")
 	}
 
-	rest := restapi.New(repo, log)
+    uc := usecase.New(repo)
+	rest := restapi.New(uc, log)
 	rest.Run()
 
 	log.Info().Msg("starting app")
