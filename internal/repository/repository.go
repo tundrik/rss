@@ -18,10 +18,10 @@ const (
 )
 
 var (
-	ErrFeedExists      = errors.New("feed already exists")
-	ErrArticleNotFound = errors.New("article not found")
-	ErrReSubscription  = errors.New("re subscription")
-	ErrNoSubscription  = errors.New("no found feed_pk")
+	ErrFeedExists        = errors.New("feed url already exists")
+	ErrArticleNotFound   = errors.New("there are no new articles for you")
+	ErrAlreadySubscribed = errors.New("already subscribed")
+	ErrNotFoundFeedPk    = errors.New("not found feed_pk")
 )
 
 type Repo struct {
@@ -97,12 +97,15 @@ func (r *Repo) Subscribe(ctx context.Context, personPk string, feedPk string) er
 			switch pgErr.Code {
 			case UniqueConstrintViolation:
 				// подписка на данный канал у данного юзера уже существует
-				return ErrReSubscription
+				return ErrAlreadySubscribed
 			case ViolatesForeignKeyConstraint:
-				// тут может быть 
-				// 1) нет канала с таким pk
+				// тут может быть
+				if  pgErr.ConstraintName == "subscribe_feed_pk_fkey" {
+					// 1) нет канала с таким pk
+					return ErrNotFoundFeedPk
+				}
 				// 2) нет такого юзера (на практике это было бы исключенно)
-				return ErrNoSubscription
+				return err
 			}
 		}
 		return err
@@ -144,6 +147,7 @@ func (r *Repo) Article(ctx context.Context, personPk string) ([]entity.Article, 
 	}
 	if len(entities) == 0 {
 		// по сути чтобы не запускать Viewed()
+		// для юзера нет новых статей
 		return nil, ErrArticleNotFound
 	}
 	return entities, nil
@@ -167,7 +171,7 @@ func (r *Repo) AddArticle(ctx context.Context, batch []entity.Article) {
 		_, err := results.Exec()
 		if err != nil {
 			// SendBatch при первой ошибке не выполнит последующие insert
-			// хотя CONFLICT по уникальности url обновит article 
+			// хотя CONFLICT по уникальности url обновит article
 			// если article.published < EXCLUDED.published и пойдет дальше
 			var pgErr *pgconn.PgError
 			if errors.As(err, &pgErr) {

@@ -51,9 +51,11 @@ func (e *RestApi) subscribe(w http.ResponseWriter, req *http.Request) {
 
 	if err := e.uc.Subscribe(ctx, personPk, feedPk); err != nil {
 		switch {
-		case errors.Is(err, repository.ErrReSubscription):
+		case errors.Is(err, repository.ErrAlreadySubscribed):
+			// подписка на данный канал у данного юзера уже существует
 			e.responseJson(w, "no content", 204, nil)
-		case errors.Is(err, repository.ErrNoSubscription):
+		case errors.Is(err, repository.ErrNotFoundFeedPk):
+			// нет канала с таким pk
 			e.responseJson(w, "feed_pk not found", 400, nil)
 		default:
 			e.responseJson(w, "internal server error", 500, nil)
@@ -88,6 +90,7 @@ func (e *RestApi) article(w http.ResponseWriter, req *http.Request) {
 	entities, err := e.uc.Article(ctx, personPk)
 	if err != nil {
 		if errors.Is(err, repository.ErrArticleNotFound) {
+			// для юзера нет новых статей
 			e.responseJson(w, err.Error(), 404, nil)
 			return
 		}

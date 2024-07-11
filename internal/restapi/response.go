@@ -23,7 +23,7 @@ type Response struct {
 // я тут эксперементировал с общим Response на все ручки
 func (e *RestApi) responseJson(w http.ResponseWriter, msg string, code int, body any) {
 	w.Header().Set("Content-Type", "application/json")
-	if code != 200 {
+	if code != 200 && code != 201 && code != 204 {
 		e.log.Error().Str("msg", msg).Msg("response json")
 	}
 	res := Response{
