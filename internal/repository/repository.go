@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"rss/configs"
 	"rss/internal/entity"
 
 	"github.com/jackc/pgx/v5"
@@ -31,8 +30,8 @@ type Repo struct {
 }
 
 // New Инициализирует репозиторий.
-func New(ctx context.Context, cfg config.Config, log zerolog.Logger) (*Repo, error) {
-	db, err := pgxpool.New(ctx, cfg.PgString)
+func New(ctx context.Context, pgString string, log zerolog.Logger) (*Repo, error) {
+	db, err := pgxpool.New(ctx, pgString)
 	if err != nil {
 		return nil, err
 	}

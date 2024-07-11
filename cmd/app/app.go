@@ -14,8 +14,6 @@ import (
 )
 
 
-
-
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	log := logger.CreateLogger()
@@ -25,7 +23,7 @@ func main() {
 		log.Fatal().Err(err).Msg("fail read config")
 	}
 	// слой данных
-	repo, err := repository.New(ctx, cfg, log) 
+	repo, err := repository.New(ctx, cfg.PgString, log)
 	if err != nil {
 		log.Fatal().Err(err).Msg("fail new repository")
 	}
@@ -33,11 +31,11 @@ func main() {
 	uc := usecase.New(repo)
 
 	// слой транспорта http
-	rest := restapi.New(uc, log)
+	rest := restapi.New(uc, cfg.Http, log)
 	rest.Run()
 
 	log.Info().Msg("starting app")
-  
+
 	signals := make(chan os.Signal, 2)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM, syscall.SIGABRT)
 

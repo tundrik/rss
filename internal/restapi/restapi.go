@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"rss/configs"
 	"rss/internal/usecase"
 
 	"github.com/rs/zerolog"
@@ -18,16 +19,16 @@ type RestApi struct {
 	log zerolog.Logger
 }
 
-func New(uc *usecase.UseCase, log zerolog.Logger) *RestApi {
+func New(uc *usecase.UseCase, cfg config.HttpConfig, log zerolog.Logger) *RestApi {
 	e := &RestApi{
 		uc:  uc,
 		log: log,
 	}
 	e.srv = &http.Server{
-		Addr:         ":8000",
+		Addr:         cfg.Port,
 		Handler:      e.registerRoutes(),
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		ReadTimeout:  cfg.ReadTimeout,
+		WriteTimeout: cfg.WriteTimeout,
 	}
 	return e
 }
@@ -52,4 +53,3 @@ func (e *RestApi) Shutdown() {
 		e.srv.Close()
 	}
 }
-

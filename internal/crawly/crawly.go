@@ -28,11 +28,11 @@ type Repository interface {
 type Crawly struct {
 	parser *gofeed.Parser
 	repo   Repository
-	cfg    config.Config
+	cfg    config.CrawlyConfig
 	log    zerolog.Logger
 }
 
-func New(repo Repository, cfg config.Config, log zerolog.Logger) *Crawly {
+func New(repo Repository, cfg config.CrawlyConfig, log zerolog.Logger) *Crawly {
 	return &Crawly{
 		parser: gofeed.NewParser(),
 		repo: repo,
